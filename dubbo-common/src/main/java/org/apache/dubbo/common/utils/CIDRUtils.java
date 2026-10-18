@@ -56,6 +56,15 @@ public class CIDRUtils {
             inetAddress = InetAddress.getByName(addressPart);
             prefixLength = Integer.parseInt(networkPart);
 
+            // Reject a prefix outside the range of the address family instead
+            // of silently computing a different range from it: a negative
+            // prefix currently becomes the match-everything range, and a
+            // prefix longer than the address collapses or empties the range.
+            int maxPrefixLength = inetAddress.getAddress().length * 8;
+            if (prefixLength < 0 || prefixLength > maxPrefixLength) {
+                throw new IllegalArgumentException("not an valid CIDR format!");
+            }
+
             calculate();
         } else {
             throw new IllegalArgumentException("not an valid CIDR format!");

@@ -50,4 +50,23 @@ class CIDRUtilsTest {
         Assertions.assertFalse(cidrUtils.isInRange("3EFE:FFFE:0:C107::dd"));
         Assertions.assertFalse(cidrUtils.isInRange("1FFE:FFFE:0:CC00::dd"));
     }
+
+    @Test
+    void testInvalidPrefixLength() {
+        // a negative IPv4 prefix used to become the match-everything range
+        Assertions.assertThrows(IllegalArgumentException.class, () -> new CIDRUtils("10.0.0.0/-1"));
+        // an over-long IPv4 prefix used to collapse the range to a single host
+        Assertions.assertThrows(IllegalArgumentException.class, () -> new CIDRUtils("10.0.0.0/33"));
+        // an over-long IPv6 prefix used to produce an empty range
+        Assertions.assertThrows(IllegalArgumentException.class, () -> new CIDRUtils("2001:db8::/129"));
+        Assertions.assertThrows(IllegalArgumentException.class, () -> new CIDRUtils("2001:db8::/-1"));
+    }
+
+    @Test
+    void testBoundaryPrefixLength() throws UnknownHostException {
+        Assertions.assertTrue(new CIDRUtils("10.0.0.0/32").isInRange("10.0.0.0"));
+        Assertions.assertTrue(new CIDRUtils("0.0.0.0/0").isInRange("1.2.3.4"));
+        Assertions.assertTrue(new CIDRUtils("2001:db8::/128").isInRange("2001:db8::"));
+        Assertions.assertTrue(new CIDRUtils("2001:db8::/0").isInRange("2001:db8::1"));
+    }
 }

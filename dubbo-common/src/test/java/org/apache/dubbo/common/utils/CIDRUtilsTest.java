@@ -50,4 +50,13 @@ class CIDRUtilsTest {
         Assertions.assertFalse(cidrUtils.isInRange("3EFE:FFFE:0:C107::dd"));
         Assertions.assertFalse(cidrUtils.isInRange("1FFE:FFFE:0:CC00::dd"));
     }
+
+    @Test
+    void testCrossFamilyMatching() throws UnknownHostException {
+        // an IPv6 address is never inside an IPv4 range, and the other way round
+        Assertions.assertFalse(new CIDRUtils("0.0.0.0/0").isInRange("::1"));
+        // ::a00:1 has the same integer value as 10.0.0.1
+        Assertions.assertFalse(new CIDRUtils("10.0.0.0/8").isInRange("::a00:1"));
+        Assertions.assertFalse(new CIDRUtils("::/0").isInRange("1.2.3.4"));
+    }
 }

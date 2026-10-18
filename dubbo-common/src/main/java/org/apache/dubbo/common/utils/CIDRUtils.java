@@ -128,6 +128,12 @@ public class CIDRUtils {
 
     public boolean isInRange(String ipAddress) throws UnknownHostException {
         InetAddress address = InetAddress.getByName(ipAddress);
+        // The integer comparison below cannot tell the address families
+        // apart: a 4-byte and a 16-byte address with the same integer value
+        // (for example 10.0.0.1 and ::a00:1) would match each other's ranges.
+        if (address.getAddress().length != this.startAddress.getAddress().length) {
+            return false;
+        }
         BigInteger start = new BigInteger(1, this.startAddress.getAddress());
         BigInteger end = new BigInteger(1, this.endAddress.getAddress());
         BigInteger target = new BigInteger(1, address.getAddress());

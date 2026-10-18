@@ -195,30 +195,37 @@ public final class DateUtils {
             }
             formatter = DateTimeFormatter.BASIC_ISO_DATE;
         }
-        switch (len) {
-            case 10:
-                formatter = DATE_FORMAT;
-                break;
-            case 16:
-                formatter = DATE_MIN_FORMAT;
-                break;
-            case 19:
-                formatter = DATE_TIME_FORMAT;
-                break;
-            case 23:
-            case 24:
-                formatter = ASC_TIME_FORMAT;
-                break;
-            case 27:
-                formatter = RFC1036_FORMAT;
-                break;
-            case 28:
-                formatter = JDK_TIME_FORMAT;
-                break;
-            case 29:
-                formatter = DateTimeFormatter.RFC_1123_DATE_TIME;
-                break;
-            default:
+        // The length-based patterns below are for the non-ISO forms only. If a
+        // formatter was already selected above (an ISO form, or a numeric basic
+        // ISO date), it must be kept: overwriting it here is what made plain
+        // ISO datetimes such as "2023-06-15T10:30:45" fail to parse, because
+        // the length 19 pattern expects a space separator instead of 'T'.
+        if (formatter == null) {
+            switch (len) {
+                case 10:
+                    formatter = DATE_FORMAT;
+                    break;
+                case 16:
+                    formatter = DATE_MIN_FORMAT;
+                    break;
+                case 19:
+                    formatter = DATE_TIME_FORMAT;
+                    break;
+                case 23:
+                case 24:
+                    formatter = ASC_TIME_FORMAT;
+                    break;
+                case 27:
+                    formatter = RFC1036_FORMAT;
+                    break;
+                case 28:
+                    formatter = JDK_TIME_FORMAT;
+                    break;
+                case 29:
+                    formatter = DateTimeFormatter.RFC_1123_DATE_TIME;
+                    break;
+                default:
+            }
         }
 
         if (formatter != null) {

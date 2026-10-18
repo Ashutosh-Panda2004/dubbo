@@ -18,6 +18,8 @@ package org.apache.dubbo.common.utils;
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
@@ -28,7 +30,6 @@ import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.TimeZone;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 public final class DateUtils {
@@ -240,20 +241,28 @@ public final class DateUtils {
         if (temporal instanceof Instant) {
             return Date.from((Instant) temporal);
         }
-        long timestamp;
+        long epochDay;
         if (temporal.isSupported(ChronoField.EPOCH_DAY)) {
-            timestamp = temporal.getLong(ChronoField.EPOCH_DAY) * 86400000;
+            epochDay = temporal.getLong(ChronoField.EPOCH_DAY);
         } else {
-            timestamp = LocalDate.now().toEpochDay() * 86400000;
+            epochDay = LocalDate.now().toEpochDay();
         }
+        long milliOfDay = 0;
         if (temporal.isSupported(ChronoField.MILLI_OF_DAY)) {
-            timestamp += temporal.getLong(ChronoField.MILLI_OF_DAY);
+            milliOfDay = temporal.getLong(ChronoField.MILLI_OF_DAY);
         }
         if (temporal.isSupported(ChronoField.OFFSET_SECONDS)) {
-            timestamp -= temporal.getLong(ChronoField.OFFSET_SECONDS) * 1000;
-        } else {
-            timestamp -= TimeZone.getDefault().getRawOffset();
+            long timestamp = epochDay * 86400000 + milliOfDay
+                    - temporal.getLong(ChronoField.OFFSET_SECONDS) * 1000;
+            return new Date(timestamp);
         }
-        return new Date(timestamp);
+        // Without an offset of its own, the temporal is a local date-time in the
+        // default zone. Resolve it through the zone rules at that date, so that
+        // daylight-saving offsets are honoured; the raw offset of the zone
+        // ignores daylight saving and shifts the result by one hour for dates
+        // inside the daylight-saving period.
+        LocalDateTime dateTime = LocalDateTime.of(
+                LocalDate.ofEpochDay(epochDay), LocalTime.ofNanoOfDay(milliOfDay * 1000000));
+        return Date.from(dateTime.atZone(ZoneId.systemDefault()).toInstant());
     }
 }

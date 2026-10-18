@@ -168,11 +168,8 @@ public final class Version {
         Integer v = VERSION2INT.get(version);
         if (v == null) {
             try {
-                v = parseInt(version);
                 // e.g., version number 2.6.3 will convert to 2060300
-                if (version.split("\\.").length == 3) {
-                    v = v * 100;
-                }
+                v = parseInt(version);
             } catch (Exception e) {
                 logger.warn(
                         COMMON_UNEXPECTED_EXCEPTION,
@@ -189,16 +186,39 @@ public final class Version {
     }
 
     private static int parseInt(String version) {
-        int v = 0;
         String[] vArr = version.split("\\.");
         int len = vArr.length;
+        if (len > 9) {
+            throw new NumberFormatException("Too many segments in version: " + version);
+        }
+        long v = 0;
         for (int i = 0; i < len; i++) {
             String subV = getPrefixDigits(vArr[i]);
+            long segment = 0;
             if (StringUtils.isNotEmpty(subV)) {
-                v += Integer.parseInt(subV) * Math.pow(10, (len - i - 1) * 2);
+                segment = Long.parseLong(subV);
+                // Each segment occupies a fixed two-digit field. A segment of
+                // 100 or more does not fit into its field and would bleed into
+                // the segment above it (2.0.100 used to pack to the same value
+                // as 2.1.0), so reject it and let the caller fall back to the
+                // legacy protocol version, as it already does for malformed
+                // versions.
+                if (segment > 99) {
+                    throw new NumberFormatException("Version segment out of range: " + subV);
+                }
             }
+            v = v * 100 + segment;
         }
-        return v;
+        // Pack into the canonical four-field width, so a version with fewer
+        // segments is packed exactly like its zero-padded form: "2.7" gives
+        // the same value as "2.7.0".
+        for (int i = len; i < 4; i++) {
+            v = v * 100;
+        }
+        if (v > Integer.MAX_VALUE) {
+            throw new NumberFormatException("Version value too large: " + version);
+        }
+        return (int) v;
     }
 
     /**

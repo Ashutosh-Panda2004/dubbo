@@ -77,6 +77,22 @@ class VersionTest {
     }
 
     @Test
+    void testGetIntVersionWithShortAndWideSegments() {
+        // a two-segment version packs exactly like its zero-padded form
+        Assertions.assertEquals(Version.getIntVersion("2.7.0"), Version.getIntVersion("2.7"));
+        Assertions.assertEquals(0, Version.compare("2.7", "2.7.0"));
+        Assertions.assertTrue(Version.isRelease270OrHigher("2.7"));
+
+        // a segment of 100 or more cannot be packed into its two-digit field,
+        // so the version falls back to the legacy protocol version instead of
+        // comparing equal to a higher release
+        Assertions.assertEquals(
+                Version.LEGACY_DUBBO_PROTOCOL_VERSION, Version.getIntVersion("2.0.100"));
+        Assertions.assertEquals(-1, Version.compare("2.0.100", "2.1.0"));
+        Assertions.assertEquals(-1, Version.compare("2.100.0", "3.0.0"));
+    }
+
+    @Test
     void testIsFramework270OrHigher() {
         Assertions.assertTrue(Version.isRelease270OrHigher("2.7.0"));
         Assertions.assertTrue(Version.isRelease270OrHigher("2.7.0.1"));
